@@ -3,18 +3,16 @@ import { Theme } from '@/lib/theme';
 import { format, parseISO } from 'date-fns';
 import { tr } from "date-fns/locale";
 import { useEffect, useState } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-
+import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Modal from "react-native-modal";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const deviceWidth = Dimensions.get("window").width;
-const deviceHeight =
-  Platform.OS === 'ios'
-    ? Dimensions.get('window').height
-    : require('react-native-extra-dimensions-android').get(
-        'REAL_WINDOW_HEIGHT',
-      );
+// const deviceWidth = Dimensions.get("window").width;
+// const deviceHeight =
+//   Platform.OS === 'ios'
+//     ? Dimensions.get('window').height
+//     : require('react-native-extra-dimensions-android').get(
+//         'REAL_WINDOW_HEIGHT',
+//       );
 
 export const formatDate = (
   date: string | number | Date,
@@ -29,10 +27,24 @@ export default function Index() {
   const [firstbalance, setFirstBalance] = useState(0);
   const [isModalVisible, setModalVisible] = useState(false);
   const [amount, setAmount] = useState("");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   const openModal = () => setModalVisible(true);
   const closeModal = () => setModalVisible(false);
-
+useEffect(() => {
+  const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+  const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+  const showSub = Keyboard.addListener(showEvent, (event) => {
+    setKeyboardHeight(event.endCoordinates.height);
+  });
+  const hideSub = Keyboard.addListener(hideEvent, () => {
+    setKeyboardHeight(0);
+  });
+  return () => {
+    showSub.remove();
+    hideSub.remove();
+  };
+}, []);
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const time = setInterval(() => setNow(new Date()), 1000);
@@ -56,18 +68,17 @@ export default function Index() {
         </Pressable>
         <Modal
           isVisible={isModalVisible}
-          deviceWidth={deviceWidth}
-          deviceHeight={deviceHeight}
+          animationIn={"fadeInUp"}
           onBackdropPress={closeModal}
           onSwipeComplete={closeModal}
           swipeDirection="down"
           avoidKeyboard
           style={styles.bottomModal}
         >
-          <View style={styles.sheet}>
+          <View style={[styles.sheet,{marginBottom: keyboardHeight}]}>
             <View style={styles.handle} />
             <Text style={styles.sheetTitle}>Bakiye Ekle</Text>
-            <Text style={styles.sheetHint}>Kartına eklenecek tutarı gir</Text>
+            <Text style={styles.sheetHint}>Eklenecek tutarı gir</Text>
             <View style={styles.amountBox}>
               <Text style={styles.currency}>₺</Text>
               <TextInput
@@ -75,13 +86,23 @@ export default function Index() {
                 placeholder="0,00"
                 placeholderTextColor={Theme.textMuted}
                 keyboardType="decimal-pad"
+               
                 value={amount}
                 onChangeText={setAmount}
               />
             </View>
+           <View style={styles.chips}>
+          <Pressable style={styles.chip} onPress={() => setAmount("50")}>
+         <Text style={styles.chipText}>50₺</Text>
+        </Pressable>
+
+            </View>
             <Pressable style={styles.modalButton} onPress={closeModal}>
               <Text style={styles.modalButtonText}>Ekle</Text>
             </Pressable>
+        
+
+           
           </View>
         </Modal>
       </View>
@@ -196,4 +217,24 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Theme.onPrimary,
   },
+  chips:{
+    width :"90%",
+   alignSelf:"flex-start",
+    flexDirection:"row",
+    gap:10,
+    marginTop:10,
+    padding:24
+
+  },
+  chip: {
+  backgroundColor: Theme.secondary,
+  borderRadius: 10,
+  paddingVertical: 10,
+  paddingHorizontal: 14,
+},
+chipText: {
+  fontSize: 14,
+  fontWeight: "600",
+  color: Theme.primary,
+},
 });

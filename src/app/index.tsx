@@ -6,43 +6,28 @@ import {
   BottomSheetView,
   useBottomSheetSpringConfigs
 } from '@gorhom/bottom-sheet';
-import { format, parseISO } from 'date-fns';
+import { ThemedButton } from '@rcaferati/react-native-awesome-button';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { format } from 'date-fns';
 import { tr } from "date-fns/locale";
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from "react-native";
-
 import { SafeAreaView } from "react-native-safe-area-context";
-
-// const deviceWidth = Dimensions.get("window").width;
-// const deviceHeight =
-//   Platform.OS === 'ios'
-//     ? Dimensions.get('window').height
-//     : require('react-native-extra-dimensions-android').get(
-//         'REAL_WINDOW_HEIGHT',
-//       );
-
-export const formatDate = (
-  date: string | number | Date,
-  pattern = 'dd/MM/yyyy HH:mm'
-) =>
-  format(
-    typeof date === 'string' ? parseISO(date) : new Date(date),
-    pattern
-  )
 
 export default function Index() {
   const [firstbalance, setFirstBalance] = useState(0);
-  const [isModalVisible, setModalVisible] = useState(false);
   const [amount, setAmount] = useState("");
   const bottomSheetModalRef  = useRef<BottomSheetModal>(null);
-
-const openModal = useCallback(() => {
+  const replaceamount = amount.replace(",", ".");
+  const parsedAmount = parseFloat(replaceamount);
+  const isAmountValid = !amount || isNaN(parsedAmount) || parsedAmount <= 0;
+  const openModal = useCallback(() => {
     bottomSheetModalRef.current?.present();
   }, []);
   const closeModal = useCallback(() => {
     bottomSheetModalRef.current?.dismiss();
-  }, [])
- const animationConfigs = useBottomSheetSpringConfigs({
+  }, []);
+  const animationConfigs = useBottomSheetSpringConfigs({
     damping: 80,
     overshootClamping: true,
     stiffness: 500,
@@ -54,6 +39,46 @@ const openModal = useCallback(() => {
     return () => clearInterval(time);
   }, []);
 
+  const handlebalance = async () => {
+    if (isAmountValid) {
+      return;
+    }
+
+    const current = Number.isNaN(firstbalance) ? 0 : firstbalance;
+
+    try {
+      const newBalance = current + parsedAmount;
+
+      await AsyncStorage.setItem('balance', newBalance.toString());
+      setFirstBalance(newBalance);
+      setAmount("");
+      closeModal();
+      console.log('Başarılı', `${parsedAmount.toFixed(2)}₺ bakiyenize eklendi.`);
+    }
+    catch (e) {
+      console.log('Hata', 'Bakiye kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    const loadBalance = async () => {
+      try {
+        const savedBalance = await AsyncStorage.getItem("balance");
+        const value = savedBalance === null ? NaN : parseFloat(savedBalance);
+        if (!Number.isNaN(value)) {
+          setFirstBalance(value);
+        }
+      } catch (e) {
+        console.log('Hata', 'Kayıtlı bakiyeniz yüklenirken bir sorun oluştu.');
+       console.error(e);
+      }
+    };
+
+    loadBalance();
+  }, []);
+
+  
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <Text style={styles.title}>Arca'ya Hoşgeldiniz</Text>
@@ -77,6 +102,7 @@ const openModal = useCallback(() => {
          keyboardBlurBehavior = "restore"
          android_keyboardInputMode = "adjustResize"
          enableDynamicSizing={true}
+        
         >
            <BottomSheetView style={styles.sheet}>
             <Text style={styles.sheetTitle}>Bakiye Ekle</Text>
@@ -86,47 +112,40 @@ const openModal = useCallback(() => {
                 style={styles.input}
                 placeholder="0,00"
                 placeholderTextColor={Theme.textMuted}
-                keyboardType="decimal-pad"
+                keyboardType="numeric"
                 value={amount}
-                onChangeText={setAmount}
-          />
-            </View>
-            <Pressable style={styles.modalButton} onPress={closeModal}>
-              <Text style={styles.modalButtonText}>Ekle</Text>
-            </Pressable>
-          </BottomSheetView>
-        </BottomSheetModal>
-        {/* <Modal
-          isVisible={isModalVisible}
-          deviceWidth={deviceWidth}
-          deviceHeight={deviceHeight}
-          onBackdropPress={closeModal}
-          onSwipeComplete={closeModal}
-          swipeDirection="down"
-          avoidKeyboard
-          style={styles.bottomModal}
-        >
-          <View style={styles.sheet}>
-            <View style={styles.handle} />
-            <Text style={styles.sheetTitle}>Bakiye Ekle</Text>
-            <Text style={styles.sheetHint}>Kartına eklenecek tutarı gir</Text>
-            <View style={styles.amountBox}>
-              <Text style={styles.currency}>₺</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="0,00"
-                placeholderTextColor={Theme.textMuted}
-                keyboardType="decimal-pad"
-                value={amount}
-                onChangeText={setAmount}
+                onChangeText={(text) => setAmount(text.replace(/[^0-9]/g, ","))}
+                 maxLength={10}
               />
             </View>
-            <Pressable style={styles.modalButton} onPress={closeModal}>
-              <Text style={styles.modalButtonText}>Ekle</Text>
-            </Pressable>
+             
+              <View style = {styles.modalButton}>
+            <ThemedButton
+              name="basic"
+              type="anchor"
+              stretch
+              progress
+              disabled={isAmountValid}
+              buttonStyle={{
+                borderRadius :8,
+                shadowColor:"transparent",
+               
+              }
+                
+              }
+             
+              onPress={(next) => { void handlebalance().finally(() => next?.());
+}}
+                 
+      
+            >
+              Bakiye Ekle
+            </ThemedButton>
           </View>
-        </Modal>
-      </View> */}
+          </BottomSheetView>
+         
+        </BottomSheetModal>
+        
     </SafeAreaView>
   );
 }
@@ -175,10 +194,6 @@ const styles = StyleSheet.create({
     color: Theme.primary,
     fontWeight: "600",
   },
-  bottomModal: {
-    justifyContent: "flex-end",
-    margin: 0,
-  },
   sheet: {
     backgroundColor: Theme.background,
     paddingHorizontal: 20,
@@ -186,14 +201,6 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-  },
-  handle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 999,
-    backgroundColor: Theme.border,
-    marginBottom: 16,
   },
   sheetTitle: {
     fontSize: 20,
@@ -213,12 +220,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
   },
-  currency: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: Theme.primary,
-    marginRight: 8,
-  },
   input: {
     flex: 1,
     fontSize: 22,
@@ -228,14 +229,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     marginTop: 20,
-    alignItems: "center",
-    backgroundColor: Theme.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: Theme.onPrimary,
+    marginHorizontal: 2,
+    marginBottom: 24,
   },
 });

@@ -7,4 +7,18 @@ export const Theme = {
   text: "#0F7B4A",
   textMuted: "#6FBF96",
   border: "#D7EDE3",
+  tabIcon: "#6FBF96",
+  tabIconSelected: "#0F7B4A",
+  tabLabel: "#6FBF96",
+  tabLabelSelected: "#0F7B4A",
+  tabIndicator: "#0F7B4A",
+  tabBackground: "#FFFFFF",
+  dark: {
+    tabIcon: "#7D9B8C",
+    tabIconSelected: "#8FE0B5",
+    tabLabel: "#7D9B8C",
+    tabLabelSelected: "#8FE0B5",
+    tabIndicator: "#8FE0B5",
+    tabBackground: "#10241A",
+  },
 };

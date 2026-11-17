@@ -1,13 +1,5 @@
-import { Text, View } from "react-native"
 
 function Add() {
-  return (
-    <View>
-      <Text>
-        Add
-      </Text>
-    </View>
-  )
+  return  null;
 }
-
 export default Add

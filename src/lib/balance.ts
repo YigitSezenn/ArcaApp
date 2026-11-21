@@ -30,6 +30,9 @@ export async function addToBalance(amount: number): Promise<number> {
   return next;
 }
 export async function removalToBalance(amount: number): Promise<number> {
+  const current = (await getBalance ());
+  if(amount> current)
+  throw new Error ("Yetersiz Bakiye")
   const next = (await getBalance ()) - amount;
   await setBalance(next);
   await setExpendirute(amount);

@@ -9,7 +9,7 @@ import {
 } from '@gorhom/bottom-sheet';
 import { ThemedButton } from "@rcaferati/react-native-awesome-button";
 import { Ref, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 
 export default function Expenditure({ ref }: { ref: Ref<BottomSheetModal> }) {
 const [balance,setbalance] = useState("")
@@ -25,9 +25,13 @@ const handle  = async() =>
  try {
       await removalToBalance(parsedAmount);
       setbalance('');
-      
+      if (ref && typeof ref === "object") ref.current?.dismiss();
     } catch (e) {
-      console.log('Hata', 'Harcama kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
+      if (e instanceof Error && e.message === "Yetersiz Bakiye") {
+        Alert.alert("Yetersiz bakiye", "Harcama tutarı bakiyenden büyük olamaz.");
+      } else {
+        Alert.alert("Hata", "Harcama kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.");
+      }
     }
   };
 

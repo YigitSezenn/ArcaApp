@@ -1,3 +1,4 @@
+import { addToBalance } from '@/lib/balance';
 import { Theme } from '@/lib/theme';
 import {
   BottomSheetModal,
@@ -6,18 +7,10 @@ import {
   useBottomSheetSpringConfigs,
 } from '@gorhom/bottom-sheet';
 import { ThemedButton } from '@rcaferati/react-native-awesome-button';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { useCallback, useRef, useState } from 'react';
-import {
-  DeviceEventEmitter,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export const BALANCE_UPDATED_EVENT = 'balanceUpdated';
 export default function AddModal() {
   const [amount, setAmount] = useState('');
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
@@ -41,19 +34,12 @@ export default function AddModal() {
       return;
     }
     try {
-      const savedBalance = await AsyncStorage.getItem('balance');
-      const current = savedBalance === null ? 0 : parseFloat(savedBalance);
-      const safeCurrent = Number.isNaN(current) ? 0 : current;
-      const newBalance = safeCurrent + parsedAmount;
-
-      await AsyncStorage.setItem('balance', newBalance.toString());
-      DeviceEventEmitter.emit(BALANCE_UPDATED_EVENT, newBalance);
+      await addToBalance(parsedAmount);
       setAmount('');
       closeModal();
       console.log('Başarılı', `${parsedAmount.toFixed(2)}₺ bakiyenize eklendi.`);
     } catch (e) {
       console.log('Hata', 'Bakiye kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.');
-      console.error(e);
     }
   };
 
@@ -62,7 +48,6 @@ export default function AddModal() {
       <TouchableOpacity onPress={openModal} style ={styles.fabTouch}>
         <View style={styles.fab}>
           <Image source={require("@/assets/icon/add-to-cart.png")} style = {styles.fabIcon}></Image>
-          {/* <FontAwesome name="cart-plus" size={25} color={Theme.tabIcon} /> */}
           <Text style={styles.bottomTabText}>Add</Text>
         </View>
       </TouchableOpacity>
@@ -77,7 +62,7 @@ export default function AddModal() {
       >
         <BottomSheetView style={styles.sheet}>
           <Text style={styles.sheetTitle}>Bakiye Ekle</Text>
-          <Text style={styles.sheetHint}>Kartına eklenecek tutarı gir</Text>
+          <Text style={styles.sheetHint}>Bakiyene eklenecek tutarı gir</Text>
           <View style={styles.amountBox}>
             <BottomSheetTextInput
               style={styles.input}

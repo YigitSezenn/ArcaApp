@@ -1,16 +1,18 @@
-import { BALANCE_UPDATED_EVENT } from '@/components/AddModal';
+import Expenditure from '@/components/Expenditure';
 import { Card } from '@/components/ui/card';
+import { getBalance, onBalanceChange } from '@/lib/balance';
 import { Theme } from '@/lib/theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useEffect, useState } from 'react';
-import { DeviceEventEmitter, StyleSheet, Text } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Index() {
   const [firstbalance, setFirstBalance] = useState(0);
   const [now, setNow] = useState(() => new Date());
+  const expenditureRef = useRef<BottomSheetModal>(null);
 
   useEffect(() => {
     const time = setInterval(() => setNow(new Date()), 1000);
@@ -18,24 +20,13 @@ export default function Index() {
   }, []);
 
   useEffect(() => {
-    const loadBalance = async () => {
-      try {
-        const savedBalance = await AsyncStorage.getItem('balance');
-        const value = savedBalance === null ? NaN : parseFloat(savedBalance);
-        if (!Number.isNaN(value)) {
-          setFirstBalance(value);
-        }
-      } catch (e) {
+    getBalance()
+      .then(setFirstBalance)
+      .catch((e) => {
         console.log('Hata', 'Kayıtlı bakiyeniz yüklenirken bir sorun oluştu.');
         console.error(e);
-      }
-    };
-    loadBalance();
-    const sub = DeviceEventEmitter.addListener(
-      BALANCE_UPDATED_EVENT,
-      (value: number) => setFirstBalance(value),
-    );
-    return () => sub.remove();
+      });
+    return onBalanceChange(setFirstBalance);
   }, []);
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -48,6 +39,13 @@ export default function Index() {
           Bakiyeniz: {firstbalance.toFixed(2)}₺
         </Text>
       </Card>
+      <View>
+        <Pressable onPress={() => expenditureRef.current?.present()}>
+          <Text style = {styles.title}>İşlem Ekle</Text>
+        </Pressable>
+      </View>
+
+      <Expenditure ref={expenditureRef} />
     </SafeAreaView>
   );}
 const styles = StyleSheet.create({
@@ -69,10 +67,11 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '90%',
+    height : '10%',
     alignSelf: 'center',
     backgroundColor: Theme.primary,
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
   },
   cardtext: {
     fontSize: 20,
@@ -81,3 +80,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
